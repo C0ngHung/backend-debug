@@ -1,0 +1,29 @@
+spring:
+  config:
+    activate:
+      on-profile: prod
+  devtools:
+    add-properties: true
+  datasource:
+    #    url:
+    #    username:
+    #    password:
+    hikari:
+      max-lifetime: 300000
+      idle-timeout: 60000
+      validation-timeout: 5000
+      minimum-idle: 5
+      maximum-pool-size: 20
+  jpa:
+    show-sql: false
+    hibernate:
+      ddl-auto: none
+
+springdoc:
+  api-docs:
+    enabled: false
+  swagger-ui:
+    enabled: false
+
+cors:
+  allowed-origins: "https://your-frontend.com"
