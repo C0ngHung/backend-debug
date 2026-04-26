@@ -1,0 +1,33 @@
+spring:
+  config:
+    activate:
+      on-profile: test
+  devtools:
+    add-properties: true
+  datasource:
+    #    url:
+    #    username:
+    #    password:
+    hikari:
+      max-lifetime: 300000
+      idle-timeout: 60000
+      validation-timeout: 5000
+      minimum-idle: 5
+      maximum-pool-size: 20
+  jpa:
+    show-sql: false
+    hibernate:
+      ddl-auto: none
+
+springdoc:
+  api-docs:
+    enabled: true
+  swagger-ui:
+    enabled: true
+
+open-api:
+  service:
+    api-docs: Backend API documentation
+    server: ${BACKEND_SERVICE:http://localhost:${server.port}}
+    title: Backend service
+    version: 1.0.0

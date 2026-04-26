@@ -1,0 +1,46 @@
+spring:
+  config:
+    activate:
+      on-profile: dev
+  devtools:
+    add-properties: true
+  datasource:
+    url: jdbc:oracle:thin:@//localhost:1521/FREEPDB1
+    username: backend_debug
+    password: root123
+    driver-class-name: oracle.jdbc.OracleDriver
+    hikari: # Connection pool
+      max-lifetime: 300000 # 5 phút
+      idle-timeout: 60000 # 1 phút
+      validation-timeout: 5000 # 5 giây
+      minimum-idle: 5
+      maximum-pool-size: 20
+  jpa:
+    show-sql: false
+    hibernate:
+      ddl-auto: none
+    properties:
+      hibernate:
+        dialect: org.hibernate.dialect.OracleDialect
+
+springdoc:
+  api-docs:
+    enabled: true
+  swagger-ui:
+    enabled: true
+
+open-api:
+  service:
+    api-docs: Backend API documentation
+    server: http://localhost:${server.port}
+    title: Backend service
+    version: 1.0.0
+
+jwt:
+  exp-minutes: 1
+  exp-days: 7
+  access-token: V4DbyLiZd72Mp+fY1cP5E4q6mmCWpMU/VTgt7YIugCIyg=
+  refresh-token: vYLTZXxXJP1hPHCdh2N6n3ZSkbnC/j8i0SFiHhpKxK0=
+
+cors:
+  allowed-origins: "*"
