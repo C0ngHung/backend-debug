@@ -26,7 +26,7 @@ public class OpenApiConfig {
     public GroupedOpenApi publicApi(@Value("${open-api.service.api-docs}") String apiDocs) {
         return GroupedOpenApi.builder()
                 .group(apiDocs)
-                .packagesToScan("vn.conghung.modules")
+                .packagesToScan("smartosc.conghung.modules")
                 .build();
     }
 
