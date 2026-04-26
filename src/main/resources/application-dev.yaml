@@ -9,10 +9,10 @@ spring:
     username: backend_debug
     password: root123
     driver-class-name: oracle.jdbc.OracleDriver
-    hikari: # Connection pool
-      max-lifetime: 300000 # 5 phút
-      idle-timeout: 60000 # 1 phút
-      validation-timeout: 5000 # 5 giây
+    hikari:
+      max-lifetime: 300000
+      idle-timeout: 60000
+      validation-timeout: 5000
       minimum-idle: 5
       maximum-pool-size: 20
   jpa:
