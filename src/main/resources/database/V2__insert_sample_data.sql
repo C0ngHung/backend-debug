@@ -56,13 +56,6 @@ VALUES ('ACC002', 'Tran Thi Binh', 5000000.00, 'ACTIVE');
 INSERT INTO tbl_account (account_number, owner_name, balance, status)
 VALUES ('ACC003', 'Le Minh Cuong', 8000000.00, 'ACTIVE');
 
--- 7. PRODUCTS
-INSERT INTO tbl_product (u_product_id, u_product_name, u_description, u_price, category, quantity)
-VALUES (1001, 'Laptop Dell XPS 15', 'Laptop cao cap cho developer', 35000000.00, 'ELECTRONICS', 10);
-
-INSERT INTO tbl_product (u_product_id, u_product_name, u_description, u_price, category, quantity)
-VALUES (1002, 'iPhone 16 Pro Max', 'Dien thoai Apple moi nhat', 32000000.00, 'ELECTRONICS', 25);
-
-INSERT INTO tbl_product (u_product_id, u_product_name, u_description, u_price, category, quantity)
-VALUES (1003, 'Samsung Galaxy S25', 'Dien thoai Samsung flagship', 28000000.00, 'ELECTRONICS', 15);
-
+-- Partner bank account
+INSERT INTO tbl_account (account_number, owner_name, balance, status)
+VALUES ('PARTNER999', 'Doi Tac Ngan Hang Y', 0.00, 'ACTIVE');
