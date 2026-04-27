@@ -6,6 +6,7 @@ import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 import smartosc.conghung.core.dto.ApiResponse;
+import smartosc.conghung.modules.transfer.exception.BankTransferException;
 
 import java.util.List;
 import java.util.Map;
@@ -15,8 +16,23 @@ import java.util.Map;
 @Slf4j
 public class GlobalExceptionHandler {
 
+    @ExceptionHandler(BankTransferException.class)
+    public ResponseEntity<ApiResponse<Void>> handleBankTransferException(BankTransferException ex) {
+
+        log.warn("BankTransferException: {}", ex.getMessage());
+
+        ApiResponse<Void> response = ApiResponse
+                .error(ex.getMessage(), Map.of("code", ErrorCode.PARTNER_BANK_ERROR.getCode())
+        );
+
+        return ResponseEntity
+                .status(ErrorCode.PARTNER_BANK_ERROR.getHttpStatus())
+                .body(response);
+    }
+
     @ExceptionHandler(AppException.class)
     public ResponseEntity<ApiResponse<Void>> handleAppException(AppException ex) {
+
         ErrorCode errorCode = ex.getErrorCode();
 
         log.error("AppException: code={}, message={}", errorCode.getCode(), ex.getMessage());
