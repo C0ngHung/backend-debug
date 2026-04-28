@@ -15,6 +15,8 @@ import java.util.Map;
 public class FeeResponseDto {
 
     private int totalProcessed;
+
     private int totalSkipped;
+
     private Map<String, BigDecimal> feeResults;
 }

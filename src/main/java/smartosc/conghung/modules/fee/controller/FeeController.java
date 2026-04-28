@@ -46,7 +46,9 @@ public class FeeController {
             @Valid @RequestBody List<FeeRequestDto> requests) {
 
         log.info("Processing batch of {} fee requests", requests.size());
+
         FeeResponseDto response = feeCalculationService.processBatchFees(requests);
+
         log.info("Batch complete: processed={}, skipped={}", response.getTotalProcessed(), response.getTotalSkipped());
 
         return ResponseEntity.ok(smartosc.conghung.core.dto.ApiResponse.success("Batch processed", response));
