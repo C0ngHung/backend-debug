@@ -30,6 +30,10 @@ public enum ErrorCode {
     TRANSFER_FAILED(4001, "Transfer failed", HttpStatus.INTERNAL_SERVER_ERROR),
     PARTNER_BANK_ERROR(4002, "Partner bank rejected the transaction", HttpStatus.BAD_GATEWAY),
 
+    // Product
+    PRODUCT_NOT_FOUND(6001, "Product not found", HttpStatus.NOT_FOUND),
+    PRODUCT_ALREADY_EXISTS(6002, "Product already exists", HttpStatus.CONFLICT),
+
     // Validation
     VALIDATION_ERROR(5001, "Validation error", HttpStatus.BAD_REQUEST);
 

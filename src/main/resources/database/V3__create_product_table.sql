@@ -1,0 +1,14 @@
+CREATE SEQUENCE TBL_PRODUCT_SEQ START WITH 1 INCREMENT BY 1;
+
+CREATE TABLE tbl_product (
+    id              NUMBER(19) DEFAULT TBL_PRODUCT_SEQ.NEXTVAL PRIMARY KEY,
+    u_product_name  VARCHAR2(255 CHAR) NOT NULL,
+    u_description   VARCHAR2(500 CHAR),
+    u_price         NUMBER(19, 2) NOT NULL,
+    category        VARCHAR2(100 CHAR),
+    status          VARCHAR2(20 CHAR) DEFAULT 'ACTIVE' NOT NULL,
+    created_at      TIMESTAMP(6) DEFAULT LOCALTIMESTAMP NOT NULL,
+    updated_at      TIMESTAMP(6) DEFAULT LOCALTIMESTAMP NOT NULL,
+
+    CONSTRAINT ck_product_status CHECK (status IN ('ACTIVE', 'INACTIVE'))
+);
