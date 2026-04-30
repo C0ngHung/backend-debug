@@ -2,7 +2,6 @@ package smartosc.conghung.modules.product.controller;
 
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
-import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -33,11 +32,8 @@ public class ProductController {
     private final ProductService productService;
 
     @Operation(summary = "Create product", description = "Creates a new product")
-    @SuppressWarnings("java:S1710")
-    @ApiResponses({
-            @ApiResponse(responseCode = "201", description = "Product created successfully"),
-            @ApiResponse(responseCode = "400", description = "Invalid request data")
-    })
+    @ApiResponse(responseCode = "201", description = "Product created successfully")
+    @ApiResponse(responseCode = "400", description = "Invalid request data")
     @PostMapping
     public ResponseEntity<ApiResult<ProductResponseDto>> createProduct(
             @Valid @RequestBody ProductRequestDto request) {
@@ -50,11 +46,8 @@ public class ProductController {
     }
 
     @Operation(summary = "Get product by ID", description = "Returns a single product by its ID")
-    @SuppressWarnings("java:S1710")
-    @ApiResponses({
-            @ApiResponse(responseCode = "200", description = "Product retrieved successfully"),
-            @ApiResponse(responseCode = "404", description = "Product not found")
-    })
+    @ApiResponse(responseCode = "200", description = "Product retrieved successfully")
+    @ApiResponse(responseCode = "404", description = "Product not found")
     @GetMapping("/{id}")
     public ResponseEntity<ApiResult<ProductResponseDto>> getProductById(
             @PathVariable Long id) {
@@ -65,10 +58,7 @@ public class ProductController {
     }
 
     @Operation(summary = "Get all products", description = "Returns paginated products")
-    @SuppressWarnings("java:S1710")
-    @ApiResponses({
-            @ApiResponse(responseCode = "200", description = "Products retrieved successfully")
-    })
+    @ApiResponse(responseCode = "200", description = "Products retrieved successfully")
     @GetMapping
     public ResponseEntity<ApiResult<Page<ProductResponseDto>>> getAllProducts(
             @PageableDefault(size = 20, sort = "id") Pageable pageable) {
@@ -79,10 +69,7 @@ public class ProductController {
     }
 
     @Operation(summary = "Get products by category", description = "Returns products filtered by category")
-    @SuppressWarnings("java:S1710")
-    @ApiResponses({
-            @ApiResponse(responseCode = "200", description = "Products retrieved successfully")
-    })
+    @ApiResponse(responseCode = "200", description = "Products retrieved successfully")
     @GetMapping("/category/{category}")
     public ResponseEntity<ApiResult<List<ProductResponseDto>>> getProductsByCategory(
             @PathVariable String category) {

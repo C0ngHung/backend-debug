@@ -2,7 +2,6 @@ package smartosc.conghung.modules.transfer.controller;
 
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
-import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -33,13 +32,10 @@ public class TransferController {
     private final AccountService accountService;
 
     @Operation(summary = "Transfer to partner bank", description = "Transfers money to a partner bank account")
-    @SuppressWarnings("java:S1710")
-    @ApiResponses({
-            @ApiResponse(responseCode = "200", description = "Transfer completed successfully"),
-            @ApiResponse(responseCode = "400", description = "Invalid request or insufficient balance"),
-            @ApiResponse(responseCode = "404", description = "Account not found"),
-            @ApiResponse(responseCode = "502", description = "Partner bank rejected the transaction")
-    })
+    @ApiResponse(responseCode = "200", description = "Transfer completed successfully")
+    @ApiResponse(responseCode = "400", description = "Invalid request or insufficient balance")
+    @ApiResponse(responseCode = "404", description = "Account not found")
+    @ApiResponse(responseCode = "502", description = "Partner bank rejected the transaction")
     @PostMapping("/partner")
     public ResponseEntity<ApiResult<TransferResponseDto>> transferToPartner(
             @Valid @RequestBody TransferRequestDto request) throws BankTransferException {
@@ -50,11 +46,8 @@ public class TransferController {
     }
 
     @Operation(summary = "Check balance", description = "Returns the current balance of an account")
-    @SuppressWarnings("java:S1710")
-    @ApiResponses({
-            @ApiResponse(responseCode = "200", description = "Balance retrieved successfully"),
-            @ApiResponse(responseCode = "404", description = "Account not found")
-    })
+    @ApiResponse(responseCode = "200", description = "Balance retrieved successfully")
+    @ApiResponse(responseCode = "404", description = "Account not found")
     @GetMapping("/balance/{accountNumber}")
     public ResponseEntity<ApiResult<AccountBalanceResponseDto>> getBalance(@PathVariable String accountNumber) {
 
