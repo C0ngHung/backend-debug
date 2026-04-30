@@ -14,6 +14,7 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
+import smartosc.conghung.core.dto.ApiResult;
 import smartosc.conghung.modules.transfer.dto.response.AccountBalanceResponseDto;
 import smartosc.conghung.modules.transfer.dto.response.TransferResponseDto;
 import smartosc.conghung.modules.transfer.dto.request.TransferRequestDto;
@@ -40,12 +41,12 @@ public class TransferController {
             @ApiResponse(responseCode = "502", description = "Partner bank rejected the transaction")
     })
     @PostMapping("/partner")
-    public ResponseEntity<smartosc.conghung.core.dto.ApiResponse<TransferResponseDto>> transferToPartner(
+    public ResponseEntity<ApiResult<TransferResponseDto>> transferToPartner(
             @Valid @RequestBody TransferRequestDto request) throws BankTransferException {
 
         TransferResponseDto response = transferService.transferToPartnerBank(request);
 
-        return ResponseEntity.ok(smartosc.conghung.core.dto.ApiResponse.success("Transfer completed", response));
+        return ResponseEntity.ok(ApiResult.success("Transfer completed", response));
     }
 
     @Operation(summary = "Check balance", description = "Returns the current balance of an account")
@@ -55,10 +56,11 @@ public class TransferController {
             @ApiResponse(responseCode = "404", description = "Account not found")
     })
     @GetMapping("/balance/{accountNumber}")
-    public ResponseEntity<smartosc.conghung.core.dto.ApiResponse<AccountBalanceResponseDto>> getBalance(@PathVariable String accountNumber) {
+    public ResponseEntity<ApiResult<AccountBalanceResponseDto>> getBalance(@PathVariable String accountNumber) {
 
         AccountBalanceResponseDto response = accountService.getBalance(accountNumber);
 
-        return ResponseEntity.ok(smartosc.conghung.core.dto.ApiResponse.success(response));
+        return ResponseEntity.ok(ApiResult.success(response));
     }
 }
+

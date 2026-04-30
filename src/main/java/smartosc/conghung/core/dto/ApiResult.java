@@ -13,7 +13,7 @@ import java.time.LocalDateTime;
 @Builder
 @AllArgsConstructor
 @JsonInclude(JsonInclude.Include.NON_NULL)
-public class ApiResponse<T> {
+public class ApiResult<T> {
 
     private boolean success;
     private String message;
@@ -24,32 +24,32 @@ public class ApiResponse<T> {
     private LocalDateTime timestamp = LocalDateTime.now();
 
 
-    public static <T> ApiResponse<T> success(T data) {
-        return ApiResponse.<T>builder()
+    public static <T> ApiResult<T> success(T data) {
+        return ApiResult.<T>builder()
                 .success(true)
                 .message("Operation successful")
                 .data(data)
                 .build();
     }
 
-    public static <T> ApiResponse<T> success(String message, T data) {
-        return ApiResponse.<T>builder()
+    public static <T> ApiResult<T> success(String message, T data) {
+        return ApiResult.<T>builder()
                 .success(true)
                 .message(message)
                 .data(data)
                 .build();
     }
 
-    public static <T> ApiResponse<T> error(String message, Object errorDetails) {
-        return ApiResponse.<T>builder()
+    public static <T> ApiResult<T> error(String message, Object errorDetails) {
+        return ApiResult.<T>builder()
                 .success(false)
                 .message(message)
                 .error(errorDetails)
                 .build();
     }
 
-    public static <T> ApiResponse<T> error(String message) {
-        return ApiResponse.<T>builder()
+    public static <T> ApiResult<T> error(String message) {
+        return ApiResult.<T>builder()
                 .success(false)
                 .message(message)
                 .build();
