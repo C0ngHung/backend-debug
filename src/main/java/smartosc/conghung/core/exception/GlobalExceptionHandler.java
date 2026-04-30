@@ -5,7 +5,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
-import smartosc.conghung.core.dto.ApiResponse;
+import smartosc.conghung.core.dto.ApiResult;
 import smartosc.conghung.modules.transfer.exception.BankTransferException;
 
 import java.util.List;
@@ -17,11 +17,11 @@ import java.util.Map;
 public class GlobalExceptionHandler {
 
     @ExceptionHandler(BankTransferException.class)
-    public ResponseEntity<ApiResponse<Void>> handleBankTransferException(BankTransferException ex) {
+    public ResponseEntity<ApiResult<Void>> handleBankTransferException(BankTransferException ex) {
 
         log.warn("BankTransferException: {}", ex.getMessage());
 
-        ApiResponse<Void> response = ApiResponse
+        ApiResult<Void> response = ApiResult
                 .error(ex.getMessage(), Map.of("code", ErrorCode.PARTNER_BANK_ERROR.getCode())
         );
 
@@ -31,13 +31,13 @@ public class GlobalExceptionHandler {
     }
 
     @ExceptionHandler(AppException.class)
-    public ResponseEntity<ApiResponse<Void>> handleAppException(AppException ex) {
+    public ResponseEntity<ApiResult<Void>> handleAppException(AppException ex) {
 
         ErrorCode errorCode = ex.getErrorCode();
 
         log.error("AppException: code={}, message={}", errorCode.getCode(), ex.getMessage());
 
-        ApiResponse<Void> response = ApiResponse.error(
+        ApiResult<Void> response = ApiResult.error(
                 ex.getMessage(),
                 Map.of("code", errorCode.getCode())
         );
@@ -48,7 +48,7 @@ public class GlobalExceptionHandler {
     }
 
     @ExceptionHandler(MethodArgumentNotValidException.class)
-    public ResponseEntity<ApiResponse<Void>> handleValidation(MethodArgumentNotValidException ex) {
+    public ResponseEntity<ApiResult<Void>> handleValidation(MethodArgumentNotValidException ex) {
         List<Map<String, String>> details = ex.getBindingResult()
                 .getFieldErrors()
                 .stream()
@@ -60,7 +60,7 @@ public class GlobalExceptionHandler {
 
         log.warn("Validation error: {}", details);
 
-        ApiResponse<Void> response = ApiResponse.error(
+        ApiResult<Void> response = ApiResult.error(
                 ErrorCode.VALIDATION_ERROR.getMessage(),
                 Map.of("code", ErrorCode.VALIDATION_ERROR.getCode(), "details", details)
         );
@@ -71,10 +71,10 @@ public class GlobalExceptionHandler {
     }
 
     @ExceptionHandler(Exception.class)
-    public ResponseEntity<ApiResponse<Void>> handleGeneral(Exception ex) {
+    public ResponseEntity<ApiResult<Void>> handleGeneral(Exception ex) {
         log.error("Unhandled exception: ", ex);
 
-        ApiResponse<Void> response = ApiResponse.error(
+        ApiResult<Void> response = ApiResult.error(
                 ErrorCode.UNCATEGORIZED.getMessage(),
                 Map.of("code", ErrorCode.UNCATEGORIZED.getCode())
         );

@@ -17,6 +17,7 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
+import smartosc.conghung.core.dto.ApiResult;
 import smartosc.conghung.modules.product.dto.request.ProductRequestDto;
 import smartosc.conghung.modules.product.dto.response.ProductResponseDto;
 import smartosc.conghung.modules.product.service.ProductService;
@@ -38,14 +39,14 @@ public class ProductController {
             @ApiResponse(responseCode = "400", description = "Invalid request data")
     })
     @PostMapping
-    public ResponseEntity<smartosc.conghung.core.dto.ApiResponse<ProductResponseDto>> createProduct(
+    public ResponseEntity<ApiResult<ProductResponseDto>> createProduct(
             @Valid @RequestBody ProductRequestDto request) {
 
         ProductResponseDto response = productService.createProduct(request);
 
         return ResponseEntity
                 .status(HttpStatus.CREATED)
-                .body(smartosc.conghung.core.dto.ApiResponse.success("Product created", response));
+                .body(ApiResult.success("Product created", response));
     }
 
     @Operation(summary = "Get product by ID", description = "Returns a single product by its ID")
@@ -55,12 +56,12 @@ public class ProductController {
             @ApiResponse(responseCode = "404", description = "Product not found")
     })
     @GetMapping("/{id}")
-    public ResponseEntity<smartosc.conghung.core.dto.ApiResponse<ProductResponseDto>> getProductById(
+    public ResponseEntity<ApiResult<ProductResponseDto>> getProductById(
             @PathVariable Long id) {
 
         ProductResponseDto response = productService.getProductById(id);
 
-        return ResponseEntity.ok(smartosc.conghung.core.dto.ApiResponse.success(response));
+        return ResponseEntity.ok(ApiResult.success(response));
     }
 
     @Operation(summary = "Get all products", description = "Returns paginated products")
@@ -69,12 +70,12 @@ public class ProductController {
             @ApiResponse(responseCode = "200", description = "Products retrieved successfully")
     })
     @GetMapping
-    public ResponseEntity<smartosc.conghung.core.dto.ApiResponse<Page<ProductResponseDto>>> getAllProducts(
+    public ResponseEntity<ApiResult<Page<ProductResponseDto>>> getAllProducts(
             @PageableDefault(size = 20, sort = "id") Pageable pageable) {
 
         Page<ProductResponseDto> response = productService.getAllProducts(pageable);
 
-        return ResponseEntity.ok(smartosc.conghung.core.dto.ApiResponse.success(response));
+        return ResponseEntity.ok(ApiResult.success(response));
     }
 
     @Operation(summary = "Get products by category", description = "Returns products filtered by category")
@@ -83,11 +84,12 @@ public class ProductController {
             @ApiResponse(responseCode = "200", description = "Products retrieved successfully")
     })
     @GetMapping("/category/{category}")
-    public ResponseEntity<smartosc.conghung.core.dto.ApiResponse<List<ProductResponseDto>>> getProductsByCategory(
+    public ResponseEntity<ApiResult<List<ProductResponseDto>>> getProductsByCategory(
             @PathVariable String category) {
 
         List<ProductResponseDto> response = productService.getProductsByCategory(category);
 
-        return ResponseEntity.ok(smartosc.conghung.core.dto.ApiResponse.success(response));
+        return ResponseEntity.ok(ApiResult.success(response));
     }
 }
+
