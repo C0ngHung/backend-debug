@@ -1,4 +1,4 @@
-package smartosc.conghung.core.exception;
+package smartosc.conghung.common.exception;
 
 import lombok.Getter;
 import org.springframework.http.HttpStatus;

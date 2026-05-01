@@ -101,7 +101,20 @@ CREATE TABLE tbl_token
             ON DELETE CASCADE
 );
 
--- ======================================
+CREATE TABLE users (
+    id          NUMBER GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
+    email       VARCHAR2(255 CHAR) NOT NULL UNIQUE,
+    password    VARCHAR2(255 CHAR) NOT NULL,
+    created_at  TIMESTAMP(6) DEFAULT LOCALTIMESTAMP NOT NULL,
+    updated_at  TIMESTAMP(6) DEFAULT LOCALTIMESTAMP NOT NULL
+);
+
+-- Sample user (password = "password123")
+INSERT INTO users (email, password) VALUES (
+    'admin@smartosc.com',
+    '$2a$10$dXJ3SW6G7P50lGmMQoepa.E8/lfPpGlBzFSGZs3hYVpxqjrPWXEa'
+);
+
 
 CREATE SEQUENCE TBL_ACCOUNT_SEQ START WITH 1 INCREMENT BY 1;
 

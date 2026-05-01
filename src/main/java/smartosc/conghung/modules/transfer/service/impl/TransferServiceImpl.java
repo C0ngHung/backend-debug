@@ -4,11 +4,12 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import smartosc.conghung.core.exception.AppException;
-import smartosc.conghung.core.exception.ErrorCode;
+import smartosc.conghung.common.exception.AppException;
+import smartosc.conghung.common.exception.ErrorCode;
 import smartosc.conghung.modules.transfer.dto.request.TransferRequestDto;
 import smartosc.conghung.modules.transfer.dto.response.TransferResponseDto;
 import smartosc.conghung.modules.transfer.entity.Account;
+import smartosc.conghung.modules.transfer.enums.TransactionStatus;
 import smartosc.conghung.modules.transfer.exception.BankTransferException;
 import smartosc.conghung.modules.transfer.service.AccountService;
 import smartosc.conghung.modules.transfer.service.PartnerBankApiService;
@@ -42,6 +43,7 @@ public class TransferServiceImpl implements TransferService {
 
         accountService.credit(toAccount, request.getAmount());
 
-        return transactionService.createTransaction(fromAccount, toAccount, request.getAmount(), request.getRequestId(), "SUCCESS");
+        return transactionService.createTransaction(fromAccount, toAccount, request.getAmount(),
+                request.getRequestId(), TransactionStatus.SUCCESS.getValue());
     }
 }

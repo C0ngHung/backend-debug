@@ -12,6 +12,7 @@ import java.math.BigDecimal;
 public interface TransactionMapper {
 
     @Mapping(source = "id", target = "transactionId")
+    @Mapping(source = "createdAt", target = "timestamp")
     @Mapping(target = "message", constant = "Transfer completed successfully")
     TransferResponseDto toTransferResponse(Transaction transaction);
 

@@ -15,5 +15,5 @@ public class TransferResponseDto {
 
     private String message;
 
-    private LocalDateTime timestamp = LocalDateTime.now();
+    private LocalDateTime timestamp;
 }

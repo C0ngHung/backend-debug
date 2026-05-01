@@ -6,8 +6,8 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import smartosc.conghung.core.exception.AppException;
-import smartosc.conghung.core.exception.ErrorCode;
+import smartosc.conghung.common.exception.AppException;
+import smartosc.conghung.common.exception.ErrorCode;
 import smartosc.conghung.modules.product.dto.request.ProductRequestDto;
 import smartosc.conghung.modules.product.dto.response.ProductResponseDto;
 import smartosc.conghung.modules.product.entity.Product;
@@ -21,6 +21,7 @@ import java.util.List;
 @Service
 @RequiredArgsConstructor
 @Slf4j(topic = "PRODUCT-SERVICE")
+@Transactional(readOnly = true)
 public class ProductServiceImpl implements ProductService {
 
     private final ProductRepository productRepository;
@@ -42,7 +43,6 @@ public class ProductServiceImpl implements ProductService {
     }
 
     @Override
-    @Transactional(readOnly = true)
     public ProductResponseDto getProductById(Long id) {
         log.info("Fetching product by id");
 
@@ -53,7 +53,6 @@ public class ProductServiceImpl implements ProductService {
     }
 
     @Override
-    @Transactional(readOnly = true)
     public Page<ProductResponseDto> getAllProducts(Pageable pageable) {
         log.info("Fetching all products");
 
@@ -62,7 +61,6 @@ public class ProductServiceImpl implements ProductService {
     }
 
     @Override
-    @Transactional(readOnly = true)
     public List<ProductResponseDto> getProductsByCategory(String category) {
         log.info("Fetching products by category");
 

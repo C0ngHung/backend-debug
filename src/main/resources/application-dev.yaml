@@ -23,6 +23,13 @@ spring:
       hibernate:
         dialect: org.hibernate.dialect.OracleDialect
         format_sql: true
+  data:
+    redis:
+      host: localhost
+      port: 6379
+  threads:
+    virtual:
+      enabled: false
 
 springdoc:
   api-docs:
@@ -38,10 +45,9 @@ open-api:
     version: 1.0.0
 
 jwt:
-  exp-minutes: 1
-  exp-days: 7
-  access-token: V4DbyLiZd72Mp+fY1cP5E4q6mmCWpMU/VTgt7YIugCIyg=
-  refresh-token: vYLTZXxXJP1hPHCdh2N6n3ZSkbnC/j8i0SFiHhpKxK0=
+  secret-key: ${JWT_SECRET_KEY:a8XYXwRNUdTGPZMLsTj4gV7UfM9vQzcgRaMrMeo1PJTu2p9aDMSARuxAD/xEiIgfHQOsNEgRGHMugHTugicoJJOLQTp5SEemclXz8pb8LrE=}
+  issuer: smartosc.conghung
+  audience: backend-debug-api
 
 cors:
   allowed-origins: "*"
