@@ -13,7 +13,8 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
-import smartosc.conghung.core.dto.ApiResult;
+import smartosc.conghung.common.constant.ApiConstant;
+import smartosc.conghung.common.response.ApiResult;
 import smartosc.conghung.modules.transfer.dto.response.AccountBalanceResponseDto;
 import smartosc.conghung.modules.transfer.dto.response.TransferResponseDto;
 import smartosc.conghung.modules.transfer.dto.request.TransferRequestDto;
@@ -22,7 +23,7 @@ import smartosc.conghung.modules.transfer.service.AccountService;
 import smartosc.conghung.modules.transfer.service.TransferService;
 
 @RestController
-@RequestMapping("/api/v1/transfer")
+@RequestMapping(ApiConstant.ApiTransfer.BASE)
 @Tag(name = "Transfer Controller", description = "APIs for bank transfer operations")
 @Slf4j(topic = "TRANSFER-CONTROLLER")
 @RequiredArgsConstructor
@@ -36,7 +37,7 @@ public class TransferController {
     @ApiResponse(responseCode = "400", description = "Invalid request or insufficient balance")
     @ApiResponse(responseCode = "404", description = "Account not found")
     @ApiResponse(responseCode = "502", description = "Partner bank rejected the transaction")
-    @PostMapping("/partner")
+    @PostMapping(ApiConstant.ApiTransfer.PARTNER)
     public ResponseEntity<ApiResult<TransferResponseDto>> transferToPartner(
             @Valid @RequestBody TransferRequestDto request) throws BankTransferException {
 
@@ -48,7 +49,7 @@ public class TransferController {
     @Operation(summary = "Check balance", description = "Returns the current balance of an account")
     @ApiResponse(responseCode = "200", description = "Balance retrieved successfully")
     @ApiResponse(responseCode = "404", description = "Account not found")
-    @GetMapping("/balance/{accountNumber}")
+    @GetMapping(ApiConstant.ApiTransfer.BALANCE)
     public ResponseEntity<ApiResult<AccountBalanceResponseDto>> getBalance(@PathVariable String accountNumber) {
 
         AccountBalanceResponseDto response = accountService.getBalance(accountNumber);

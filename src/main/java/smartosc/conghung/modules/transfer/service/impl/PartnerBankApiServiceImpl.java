@@ -11,6 +11,7 @@ import java.math.BigDecimal;
 @Slf4j(topic = "PARTNER-BANK-API")
 public class PartnerBankApiServiceImpl implements PartnerBankApiService {
 
+    @Override
     public void creditToPartnerBank(String toAccountNumber, BigDecimal amount) throws BankTransferException {
 
         log.info("Calling partner bank API to credit amount");

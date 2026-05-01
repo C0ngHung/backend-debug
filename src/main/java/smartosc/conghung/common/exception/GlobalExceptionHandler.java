@@ -1,34 +1,22 @@
-package smartosc.conghung.core.exception;
+package smartosc.conghung.common.exception;
 
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.core.annotation.Order;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
-import smartosc.conghung.core.dto.ApiResult;
-import smartosc.conghung.modules.transfer.exception.BankTransferException;
+import smartosc.conghung.common.response.ApiResult;
 
 import java.util.List;
 import java.util.Map;
 
 
 @RestControllerAdvice
+@Order(2)
 @Slf4j
 public class GlobalExceptionHandler {
 
-    @ExceptionHandler(BankTransferException.class)
-    public ResponseEntity<ApiResult<Void>> handleBankTransferException(BankTransferException ex) {
-
-        log.warn("BankTransferException: {}", ex.getMessage());
-
-        ApiResult<Void> response = ApiResult
-                .error(ex.getMessage(), Map.of("code", ErrorCode.PARTNER_BANK_ERROR.getCode())
-        );
-
-        return ResponseEntity
-                .status(ErrorCode.PARTNER_BANK_ERROR.getHttpStatus())
-                .body(response);
-    }
 
     @ExceptionHandler(AppException.class)
     public ResponseEntity<ApiResult<Void>> handleAppException(AppException ex) {

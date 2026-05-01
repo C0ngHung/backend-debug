@@ -1,4 +1,4 @@
-package smartosc.conghung.core.dto;
+package smartosc.conghung.common.response;
 
 import com.fasterxml.jackson.annotation.JsonInclude;
 import lombok.AllArgsConstructor;
