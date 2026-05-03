@@ -10,10 +10,6 @@ import smartosc.conghung.common.response.ApiResult;
 
 import java.util.Map;
 
-/**
- * Module-specific exception handler for transfer operations.
- * Keeps common/ free from modules/ dependencies (DIP compliance).
- */
 @RestControllerAdvice
 @Order(1)
 @Slf4j
@@ -24,12 +20,8 @@ public class TransferExceptionHandler {
 
         log.warn("BankTransferException: {}", ex.getMessage());
 
-        ApiResult<Void> response = ApiResult
-                .error(ex.getMessage(), Map.of("code", ErrorCode.PARTNER_BANK_ERROR.getCode())
-        );
+        ApiResult<Void> response = ApiResult.error(ex.getMessage(), Map.of("code", ErrorCode.PARTNER_BANK_ERROR.getCode()));
 
-        return ResponseEntity
-                .status(ErrorCode.PARTNER_BANK_ERROR.getHttpStatus())
-                .body(response);
+        return ResponseEntity.status(ErrorCode.PARTNER_BANK_ERROR.getHttpStatus()).body(response);
     }
 }

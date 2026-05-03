@@ -33,6 +33,7 @@ public class ProductServiceImpl implements ProductService {
         log.info("Creating new product");
 
         Product entity = productMapper.toEntity(request);
+
         entity.setStatus(ProductStatus.ACTIVE.getValue());
 
         Product saved = productRepository.save(entity);
@@ -46,22 +47,22 @@ public class ProductServiceImpl implements ProductService {
     public ProductResponseDto getProductById(Long id) {
         log.info("Fetching product by id");
 
-        Product product = productRepository.findById(id)
-                .orElseThrow(() -> new AppException(ErrorCode.PRODUCT_NOT_FOUND));
+        Product product = productRepository.findById(id).orElseThrow(() -> new AppException(ErrorCode.PRODUCT_NOT_FOUND));
 
         return productMapper.toResponse(product);
     }
 
     @Override
     public Page<ProductResponseDto> getAllProducts(Pageable pageable) {
+
         log.info("Fetching all products");
 
-        return productRepository.findAll(pageable)
-                .map(productMapper::toResponse);
+        return productRepository.findAll(pageable).map(productMapper::toResponse);
     }
 
     @Override
     public List<ProductResponseDto> getProductsByCategory(String category) {
+
         log.info("Fetching products by category");
 
         return productRepository.findByCategory(category)
