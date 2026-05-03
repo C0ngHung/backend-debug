@@ -49,5 +49,5 @@ jwt:
   issuer: smartosc.conghung
   audience: backend-debug-api
 
-cors:
-  allowed-origins: "*"
+#cors:
+#  allowed-origins: "*"

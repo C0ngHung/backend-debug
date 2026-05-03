@@ -25,5 +25,5 @@ springdoc:
   swagger-ui:
     enabled: false
 
-cors:
-  allowed-origins: "https://your-frontend.com"
+#cors:
+#  allowed-origins: "https://your-frontend.com"
