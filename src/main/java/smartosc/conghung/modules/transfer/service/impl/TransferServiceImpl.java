@@ -4,46 +4,53 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import smartosc.conghung.common.exception.AppException;
-import smartosc.conghung.common.exception.ErrorCode;
-import smartosc.conghung.modules.transfer.dto.request.TransferRequestDto;
-import smartosc.conghung.modules.transfer.dto.response.TransferResponseDto;
-import smartosc.conghung.modules.transfer.entity.Account;
-import smartosc.conghung.modules.transfer.enums.TransactionStatus;
-import smartosc.conghung.modules.transfer.exception.BankTransferException;
-import smartosc.conghung.modules.transfer.service.AccountService;
-import smartosc.conghung.modules.transfer.service.PartnerBankApiService;
-import smartosc.conghung.modules.transfer.service.TransactionService;
+import smartosc.conghung.modules.transfer.client.CoreBankingClient;
+import smartosc.conghung.modules.transfer.dto.request.TransferRequest;
+import smartosc.conghung.modules.transfer.entity.AppTransferRequest;
+import smartosc.conghung.modules.transfer.repository.AppTransferRequestRepository;
 import smartosc.conghung.modules.transfer.service.TransferService;
 
 @Service
 @RequiredArgsConstructor
-@Slf4j(topic = "TRANSFER-SERVICE")
+@Slf4j(topic = "TRANSFER")
 public class TransferServiceImpl implements TransferService {
 
-    private final AccountService accountService;
-    private final TransactionService transactionService;
-    private final PartnerBankApiService partnerBankApiService;
+    private final AppTransferRequestRepository transferRequestRepository;
+    private final CoreBankingClient coreBankingClient;
 
     @Override
     @Transactional
-    public TransferResponseDto transferToPartnerBank(TransferRequestDto request) throws BankTransferException {
+    public void transfer(TransferRequest request) {
 
-        Account fromAccount = accountService.findByAccountNumber(request.getFromAccountNumber());
+        String idempotencyKey = buildAppIdempotencyKey(request.getExternalRef());
 
-        Account toAccount = accountService.findByAccountNumber(request.getToAccountNumber());
+        if (transferRequestRepository.existsByIdempotencyKey(idempotencyKey)) {
 
-        if (fromAccount.getBalance().compareTo(request.getAmount()) < 0) {
-            throw new AppException(ErrorCode.INSUFFICIENT_BALANCE);
+            log.info("Duplicate transfer detected, skipping");
+
+            return;
         }
 
-        accountService.debit(fromAccount, request.getAmount());
+        AppTransferRequest transferRequest = AppTransferRequest.processing(
+                request.getExternalRef(),
+                idempotencyKey,
+                request.getDebitAccountNo(),
+                request.getAmount()
+        );
 
-        partnerBankApiService.creditToPartnerBank(request.getToAccountNumber(), request.getAmount());
+        transferRequestRepository.save(transferRequest);
 
-        accountService.credit(toAccount, request.getAmount());
+        coreBankingClient.debit(
+                request.getExternalRef(),
+                request.getDebitAccountNo(),
+                request.getAmount(),
+                request.getCoreDelayMillis()
+        );
 
-        return transactionService.createTransaction(fromAccount, toAccount, request.getAmount(),
-                request.getRequestId(), TransactionStatus.SUCCESS.getValue());
+        transferRequest.markSuccess();
+
+        log.info("Transfer completed successfully");
     }
+
+    private String buildAppIdempotencyKey(String externalRef) {return "APP_TRANSFER:" + externalRef;}
 }
