@@ -4,53 +4,55 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.client.ResourceAccessException;
 import smartosc.conghung.modules.transfer.client.CoreBankingClient;
 import smartosc.conghung.modules.transfer.dto.request.TransferRequest;
-import smartosc.conghung.modules.transfer.entity.AppTransferRequest;
-import smartosc.conghung.modules.transfer.repository.AppTransferRequestRepository;
+import smartosc.conghung.modules.transfer.service.IdempotencyService;
 import smartosc.conghung.modules.transfer.service.TransferService;
+import smartosc.conghung.modules.transfer.vo.ExternalReference;
 
 @Service
 @RequiredArgsConstructor
 @Slf4j(topic = "TRANSFER")
 public class TransferServiceImpl implements TransferService {
 
-    private final AppTransferRequestRepository transferRequestRepository;
+    private final IdempotencyService idempotencyService;
     private final CoreBankingClient coreBankingClient;
 
     @Override
     @Transactional
     public void transfer(TransferRequest request) {
 
-        String idempotencyKey = buildAppIdempotencyKey(request.getExternalRef());
+        ExternalReference ref = ExternalReference.from(request.getExternalRef());
 
-        if (transferRequestRepository.existsByIdempotencyKey(idempotencyKey)) {
+        boolean reserved = idempotencyService.reserve(ref, request);
+
+        if (!reserved) {
 
             log.info("Duplicate transfer detected, skipping");
 
             return;
         }
 
-        AppTransferRequest transferRequest = AppTransferRequest.processing(
-                request.getExternalRef(),
-                idempotencyKey,
-                request.getDebitAccountNo(),
-                request.getAmount()
-        );
+        try {
+            coreBankingClient.debit(
+                    ref.value(),
+                    request.getDebitAccountNo(),
+                    request.getAmount(),
+                    request.getCoreDelayMillis()
+            );
 
-        transferRequestRepository.save(transferRequest);
+            idempotencyService.markSuccess(ref);
 
-        coreBankingClient.debit(
-                request.getExternalRef(),
-                request.getDebitAccountNo(),
-                request.getAmount(),
-                request.getCoreDelayMillis()
-        );
+            log.info("Transfer completed successfully");
 
-        transferRequest.markSuccess();
+        } catch (ResourceAccessException exception) {
 
-        log.info("Transfer completed successfully");
+            idempotencyService.markUnknown(ref);
+
+            log.error("Transfer timeout — marked as UNKNOWN for reconciliation");
+
+            throw exception;
+        }
     }
-
-    private String buildAppIdempotencyKey(String externalRef) {return "APP_TRANSFER:" + externalRef;}
 }

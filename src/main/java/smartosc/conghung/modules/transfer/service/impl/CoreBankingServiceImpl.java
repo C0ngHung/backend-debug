@@ -49,7 +49,9 @@ public class CoreBankingServiceImpl implements CoreBankingService {
         log.info("Core debit committed successfully");
     }
 
-    private String buildCoreIdempotencyKey(String externalRef) {return "CORE_DEBIT:" + externalRef;}
+    private String buildCoreIdempotencyKey(String externalRef) {
+        return "CORE_DEBIT:" + externalRef.strip();
+    }
 
     private void sleep(long delayMillis) {
 

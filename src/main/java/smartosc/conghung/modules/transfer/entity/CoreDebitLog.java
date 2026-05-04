@@ -24,7 +24,7 @@ public class CoreDebitLog {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @Column(name = "business_ref", nullable = false, length = 16, columnDefinition = "CHAR(16)")
+    @Column(name = "business_ref", nullable = false, length = 32)
     private String businessRef;
 
     @Column(name = "core_idempotency_key", nullable = false, unique = true, length = 128)

@@ -24,7 +24,7 @@ public class AppTransferRequest {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @Column(name = "external_ref", nullable = false, length = 16, columnDefinition = "CHAR(16)")
+    @Column(name = "external_ref", nullable = false, length = 32)
     private String externalRef;
 
     @Column(name = "idempotency_key", nullable = false, length = 128)
@@ -60,6 +60,11 @@ public class AppTransferRequest {
 
     public void markSuccess() {
         this.status = "SUCCESS";
+        this.updatedAt = LocalDateTime.now();
+    }
+
+    public void markUnknown() {
+        this.status = "UNKNOWN";
         this.updatedAt = LocalDateTime.now();
     }
 }
