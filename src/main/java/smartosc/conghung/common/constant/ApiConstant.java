@@ -25,9 +25,12 @@ public class ApiConstant {
     }
 
     @NoArgsConstructor(access = AccessLevel.PRIVATE)
-    public static final class ApiTransfer {
+    public static final class ApiGhostDebit {
         public static final String BASE = VERSION_V1 + "/transfer";
-        public static final String PARTNER = "/partner";
-        public static final String BALANCE = "/balance/{accountNumber}";
+    }
+
+    @NoArgsConstructor(access = AccessLevel.PRIVATE)
+    public static final class ApiMockCore {
+        public static final String BASE = "/core";
     }
 }

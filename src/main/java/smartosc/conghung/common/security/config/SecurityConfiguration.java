@@ -28,6 +28,8 @@ public class SecurityConfiguration {
 
     private static final String[] AUTH_WHITELIST = {
             ApiConstant.ApiAuth.BASE + "/**",
+            ApiConstant.ApiGhostDebit.BASE + "/**",
+            ApiConstant.ApiMockCore.BASE + "/**",
             "/swagger-ui/**",
             "/swagger-ui.html",
             "/v3/api-docs/**",
