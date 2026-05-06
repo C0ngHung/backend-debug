@@ -638,4 +638,650 @@ docs(debug-lab): update ghost double debit for 2-project architecture
 > **Câu chốt**: Bug không nằm ở việc core chậm hay user retry. Bug nằm ở `transfer-service`: xử lý timeout sai, lưu idempotency sai transaction, build idempotency key từ `externalRef` chưa normalize, và blind retry debit thay vì inquiry trạng thái giao dịch.
 
 ---
+
+## 12. Chi tiết triển khai (Implementation Details)
+
+> Section này chứa đủ config, entity, repository, DTO, controller và service để tái tạo lab từ đầu chỉ từ tài liệu này.
+
+### 12.1 Dependencies (pom.xml — cả 2 project giống nhau)
+
+```xml
+<parent>
+    <groupId>org.springframework.boot</groupId>
+    <artifactId>spring-boot-starter-parent</artifactId>
+    <version>4.0.6</version>
+</parent>
+
+<dependencies>
+    <!-- Web + REST -->
+    <dependency>
+        <groupId>org.springframework.boot</groupId>
+        <artifactId>spring-boot-starter-web</artifactId>
+    </dependency>
+
+    <!-- JPA -->
+    <dependency>
+        <groupId>org.springframework.boot</groupId>
+        <artifactId>spring-boot-starter-data-jpa</artifactId>
+    </dependency>
+
+    <!-- Oracle JDBC -->
+    <dependency>
+        <groupId>com.oracle.database.jdbc</groupId>
+        <artifactId>ojdbc17</artifactId>
+        <scope>runtime</scope>
+    </dependency>
+
+    <!-- Validation -->
+    <dependency>
+        <groupId>org.springframework.boot</groupId>
+        <artifactId>spring-boot-starter-validation</artifactId>
+    </dependency>
+
+    <!-- Lombok -->
+    <dependency>
+        <groupId>org.projectlombok</groupId>
+        <artifactId>lombok</artifactId>
+        <optional>true</optional>
+    </dependency>
+</dependencies>
+```
+
+### 12.2 application.yml — transfer-service (:8080)
+
+```yaml
+server:
+  port: 8080
+
+spring:
+  application:
+    name: transfer-service
+  datasource:
+    url: jdbc:oracle:thin:@localhost:1521/FREEPDB1
+    username: transfer_svc
+    password: root123
+    driver-class-name: oracle.jdbc.OracleDriver
+  jpa:
+    hibernate:
+      ddl-auto: none
+    show-sql: true
+
+# Lab config
+core-banking:
+  base-url: http://localhost:9090
+  connect-timeout: 2000
+  read-timeout: 2000
+
+# Inquiry scheduler
+inquiry:
+  scheduler:
+    enabled: true
+    fixed-delay: 30000  # 30 seconds
+```
+
+### 12.3 application.yml — mock-core-banking (:9090)
+
+```yaml
+server:
+  port: 9090
+
+spring:
+  application:
+    name: mock-core-banking
+  datasource:
+    url: jdbc:oracle:thin:@localhost:1521/FREEPDB1
+    username: core_bank
+    password: root123
+    driver-class-name: oracle.jdbc.OracleDriver
+  jpa:
+    hibernate:
+      ddl-auto: none
+    show-sql: true
+```
+
+### 12.4 Entity — AppTransferRequest (transfer-service)
+
+```java
+@Entity
+@Table(name = "transfer_request")
+@Getter
+@Setter
+public class AppTransferRequest {
+
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    private Long id;
+
+    @Column(name = "external_ref", nullable = false, length = 16, columnDefinition = "CHAR(16)")
+    private String externalRef;
+
+    @Column(name = "idempotency_key", nullable = false, unique = true, length = 128)
+    private String idempotencyKey;
+
+    @Column(name = "debit_account_no", nullable = false, length = 20)
+    private String debitAccountNo;
+
+    @Column(name = "amount", nullable = false, precision = 19, scale = 2)
+    private BigDecimal amount;
+
+    @Column(name = "status", nullable = false, length = 30)
+    private String status = "INIT";
+
+    @Column(name = "core_reference", length = 64)
+    private String coreReference;
+
+    @Column(name = "error_code", length = 50)
+    private String errorCode;
+
+    @Column(name = "inquiry_count")
+    private int inquiryCount = 0;
+
+    @Column(name = "created_at", nullable = false, updatable = false)
+    private Timestamp createdAt;
+
+    @Column(name = "updated_at", nullable = false)
+    private Timestamp updatedAt;
+
+    @PrePersist
+    protected void onCreate() {
+        this.createdAt = Timestamp.from(Instant.now());
+        this.updatedAt = this.createdAt;
+    }
+
+    @PreUpdate
+    protected void onUpdate() {
+        this.updatedAt = Timestamp.from(Instant.now());
+    }
+
+    public static AppTransferRequest processing(String externalRef, String idempotencyKey,
+                                                 String debitAccountNo, BigDecimal amount) {
+        AppTransferRequest req = new AppTransferRequest();
+        req.setExternalRef(externalRef);
+        req.setIdempotencyKey(idempotencyKey);
+        req.setDebitAccountNo(debitAccountNo);
+        req.setAmount(amount);
+        req.setStatus("PROCESSING");
+        return req;
+    }
+
+    public void markSuccess() {
+        this.status = "SUCCESS";
+    }
+
+    public void markPendingConfirmation() {
+        this.status = "PENDING_CONFIRMATION";
+    }
+
+    public void markFailed(String errorCode) {
+        this.status = "FAILED";
+        this.errorCode = errorCode;
+    }
+}
+```
+
+### 12.5 Entity — CoreAccount (mock-core-banking)
+
+```java
+@Entity
+@Table(name = "core_account")
+@Getter
+@Setter
+public class CoreAccount {
+
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    private Long id;
+
+    @Column(name = "account_no", nullable = false, unique = true, length = 20)
+    private String accountNo;
+
+    @Column(name = "available_balance", nullable = false, precision = 19, scale = 2)
+    private BigDecimal availableBalance;
+
+    @Column(name = "created_at", nullable = false, updatable = false)
+    private Timestamp createdAt;
+
+    @Column(name = "updated_at", nullable = false)
+    private Timestamp updatedAt;
+}
+```
+
+### 12.6 Entity — CoreTransaction (mock-core-banking)
+
+```java
+@Entity
+@Table(name = "core_transaction")
+@Getter
+@Setter
+public class CoreTransaction {
+
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    private Long id;
+
+    @Column(name = "external_ref", nullable = false, length = 32)
+    private String externalRef;
+
+    @Column(name = "core_ref", nullable = false, unique = true, length = 64)
+    private String coreRef;
+
+    @Column(name = "core_idempotency_key", nullable = false, unique = true, length = 128)
+    private String coreIdempotencyKey;
+
+    @Column(name = "account_no", nullable = false, length = 20)
+    private String accountNo;
+
+    @Column(name = "amount", nullable = false, precision = 19, scale = 2)
+    private BigDecimal amount;
+
+    @Column(name = "status", nullable = false, length = 20)
+    private String status = "SUCCESS";
+
+    @Column(name = "created_at", nullable = false, updatable = false)
+    private Timestamp createdAt;
+
+    @PrePersist
+    protected void onCreate() {
+        this.createdAt = Timestamp.from(Instant.now());
+    }
+
+    public static CoreTransaction of(String externalRef, String coreRef, String coreIdempotencyKey,
+                                      String accountNo, BigDecimal amount) {
+        CoreTransaction tx = new CoreTransaction();
+        tx.setExternalRef(externalRef);
+        tx.setCoreRef(coreRef);
+        tx.setCoreIdempotencyKey(coreIdempotencyKey);
+        tx.setAccountNo(accountNo);
+        tx.setAmount(amount);
+        tx.setStatus("SUCCESS");
+        return tx;
+    }
+}
+```
+
+### 12.7 Repository — transfer-service
+
+```java
+public interface AppTransferRequestRepository extends JpaRepository<AppTransferRequest, Long> {
+
+    boolean existsByIdempotencyKey(String idempotencyKey);
+
+    Optional<AppTransferRequest> findByExternalRef(String externalRef);
+
+    List<AppTransferRequest> findByStatus(String status);
+}
+```
+
+### 12.8 Repository — mock-core-banking
+
+```java
+public interface CoreAccountRepository extends JpaRepository<CoreAccount, Long> {
+
+    @Modifying
+    @Query("UPDATE CoreAccount a SET a.availableBalance = a.availableBalance - :amount, " +
+           "a.updatedAt = CURRENT_TIMESTAMP " +
+           "WHERE a.accountNo = :accountNo AND a.availableBalance >= :amount")
+    int debit(@Param("accountNo") String accountNo, @Param("amount") BigDecimal amount);
+}
+```
+
+```java
+public interface CoreTransactionRepository extends JpaRepository<CoreTransaction, Long> {
+
+    boolean existsByCoreIdempotencyKey(String coreIdempotencyKey);
+
+    Optional<CoreTransaction> findByExternalRef(String externalRef);
+}
+```
+
+### 12.9 DTO — CoreDebitRequest (transfer-service gửi, mock-core-banking nhận)
+
+```java
+@Getter
+@Setter
+@AllArgsConstructor
+@NoArgsConstructor
+public class CoreDebitRequest {
+    private String externalRef;
+    private String accountNo;
+    private BigDecimal amount;
+    private long delayMillis;  // Lab only: simulate core processing delay
+}
+```
+
+### 12.10 DTO — CoreInquiryResponse (mock-core-banking trả)
+
+```java
+@Getter
+@Setter
+@AllArgsConstructor
+@NoArgsConstructor
+public class CoreInquiryResponse {
+    private String externalRef;
+    private String coreRef;
+    private String status;
+    private BigDecimal amount;
+    private boolean found;
+
+    public static CoreInquiryResponse from(CoreTransaction tx) {
+        CoreInquiryResponse resp = new CoreInquiryResponse();
+        resp.setExternalRef(tx.getExternalRef());
+        resp.setCoreRef(tx.getCoreRef());
+        resp.setStatus(tx.getStatus());
+        resp.setAmount(tx.getAmount());
+        resp.setFound(true);
+        return resp;
+    }
+
+    public static CoreInquiryResponse notFound(String externalRef) {
+        CoreInquiryResponse resp = new CoreInquiryResponse();
+        resp.setExternalRef(externalRef);
+        resp.setStatus("NOT_FOUND");
+        resp.setFound(false);
+        return resp;
+    }
+}
+```
+
+### 12.11 Controller — TransferController (transfer-service :8080)
+
+```java
+@RestController
+@RequestMapping("/api/v1/transfers")
+@RequiredArgsConstructor
+public class TransferController {
+
+    private final TransferService transferService;
+
+    @PostMapping
+    public ResponseEntity<?> transfer(@Valid @RequestBody TransferRequest request) {
+        transferService.transfer(request);
+        return ResponseEntity.ok(Map.of("success", true, "message", "Transfer completed"));
+    }
+}
+```
+
+> **Note**: Đây là buggy version. Sau khi fix, controller phải catch timeout exception và trả `202 Accepted` với `PENDING_CONFIRMATION`.
+
+### 12.12 Controller — TransferInquiryController (transfer-service :8080, sau khi fix)
+
+```java
+@RestController
+@RequestMapping("/api/v1/transfers")
+@RequiredArgsConstructor
+public class TransferInquiryController {
+
+    private final AppTransferRequestRepository transferRequestRepository;
+
+    @GetMapping("/{externalRef}")
+    public ResponseEntity<?> inquiry(@PathVariable String externalRef) {
+        return transferRequestRepository.findByExternalRef(externalRef.strip())
+                .map(tx -> ResponseEntity.ok(Map.of(
+                        "success", true,
+                        "data", Map.of(
+                                "externalRef", tx.getExternalRef().strip(),
+                                "status", tx.getStatus(),
+                                "inquiryCount", tx.getInquiryCount(),
+                                "message", buildMessage(tx.getStatus())
+                        )
+                )))
+                .orElse(ResponseEntity.ok(Map.of(
+                        "success", false,
+                        "message", "Transaction not found"
+                )));
+    }
+
+    private String buildMessage(String status) {
+        return switch (status) {
+            case "PENDING_CONFIRMATION" -> "Giao dịch đang chờ xác nhận từ core banking";
+            case "SUCCESS" -> "Giao dịch thành công";
+            case "FAILED" -> "Giao dịch thất bại";
+            default -> "Đang xử lý";
+        };
+    }
+}
+```
+
+### 12.13 Controller — CoreDebitController (mock-core-banking :9090)
+
+```java
+@RestController
+@RequestMapping("/core")
+@RequiredArgsConstructor
+public class CoreDebitController {
+
+    private final CoreBankingService coreBankingService;
+
+    @PostMapping("/debit")
+    public ResponseEntity<?> debit(@Valid @RequestBody CoreDebitRequest request) {
+        coreBankingService.debit(request);
+        return ResponseEntity.ok(Map.of("status", "SUCCESS", "message", "Debit completed"));
+    }
+}
+```
+
+### 12.14 Value Object — ExternalReference (transfer-service, sau khi fix)
+
+```java
+public class ExternalReference {
+
+    private final String value;
+
+    private ExternalReference(String value) {
+        if (value == null || value.isBlank()) {
+            throw new IllegalArgumentException("externalRef must not be blank");
+        }
+        this.value = value.strip();
+    }
+
+    public static ExternalReference from(String rawValue) {
+        return new ExternalReference(rawValue);
+    }
+
+    public String value() {
+        return this.value;
+    }
+
+    @Override
+    public String toString() {
+        return this.value;
+    }
+
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (o == null || getClass() != o.getClass()) return false;
+        ExternalReference that = (ExternalReference) o;
+        return value.equals(that.value);
+    }
+
+    @Override
+    public int hashCode() {
+        return value.hashCode();
+    }
+}
+```
+
+### 12.15 IdempotencyService (transfer-service, sau khi fix)
+
+```java
+@Service
+@RequiredArgsConstructor
+public class IdempotencyService {
+
+    private final AppTransferRequestRepository transferRequestRepository;
+
+    /**
+     * Reserve idempotency record trong transaction độc lập (REQUIRES_NEW).
+     * Dù transaction chính rollback do timeout, record này vẫn tồn tại.
+     */
+    @Transactional(propagation = Propagation.REQUIRES_NEW)
+    public AppTransferRequest reserve(String externalRef, String idempotencyKey,
+                                       String debitAccountNo, BigDecimal amount) {
+        if (transferRequestRepository.existsByIdempotencyKey(idempotencyKey)) {
+            return null; // Already reserved — idempotency check
+        }
+
+        AppTransferRequest request = AppTransferRequest.processing(
+                externalRef, idempotencyKey, debitAccountNo, amount
+        );
+        return transferRequestRepository.save(request);
+    }
+
+    /**
+     * Cập nhật status thành PENDING_CONFIRMATION trong transaction độc lập.
+     * Đảm bảo status không bị rollback theo transaction chính khi timeout.
+     */
+    @Transactional(propagation = Propagation.REQUIRES_NEW)
+    public void markPendingConfirmation(Long transferRequestId) {
+        transferRequestRepository.findById(transferRequestId).ifPresent(req -> {
+            req.markPendingConfirmation();
+            transferRequestRepository.save(req);
+        });
+    }
+
+    /**
+     * Cập nhật status sau khi inquiry core thành công.
+     */
+    @Transactional(propagation = Propagation.REQUIRES_NEW)
+    public void updateFromCoreInquiry(Long transferRequestId, String coreStatus, String coreRef) {
+        transferRequestRepository.findById(transferRequestId).ifPresent(req -> {
+            if ("SUCCESS".equals(coreStatus)) {
+                req.markSuccess();
+                req.setCoreReference(coreRef);
+            } else if ("FAILED".equals(coreStatus)) {
+                req.markFailed("CORE_REJECTED");
+            }
+            req.setInquiryCount(req.getInquiryCount() + 1);
+            transferRequestRepository.save(req);
+        });
+    }
+}
+```
+
+### 12.16 InquiryScheduler (transfer-service, sau khi fix)
+
+```java
+@Component
+@RequiredArgsConstructor
+@Slf4j
+public class InquiryScheduler {
+
+    private final AppTransferRequestRepository transferRequestRepository;
+    private final IdempotencyService idempotencyService;
+    private final RestClient coreInquiryClient;
+
+    public InquiryScheduler(AppTransferRequestRepository transferRequestRepository,
+                             IdempotencyService idempotencyService) {
+        this.transferRequestRepository = transferRequestRepository;
+        this.idempotencyService = idempotencyService;
+        this.coreInquiryClient = RestClient.builder()
+                .baseUrl("http://localhost:9090")
+                .build();
+    }
+
+    @Scheduled(fixedDelayString = "${inquiry.scheduler.fixed-delay:30000}")
+    public void inquirePendingTransactions() {
+        List<AppTransferRequest> pendingList =
+                transferRequestRepository.findByStatus("PENDING_CONFIRMATION");
+
+        for (AppTransferRequest req : pendingList) {
+            try {
+                String normalizedRef = req.getExternalRef().strip();
+
+                CoreInquiryResponse response = coreInquiryClient.get()
+                        .uri("/core/transactions?externalRef={ref}", normalizedRef)
+                        .retrieve()
+                        .body(CoreInquiryResponse.class);
+
+                if (response != null && response.isFound()) {
+                    idempotencyService.updateFromCoreInquiry(
+                            req.getId(), response.getStatus(), response.getCoreRef()
+                    );
+                    log.info("Inquiry completed: externalRef={}, coreStatus={}",
+                            normalizedRef, response.getStatus());
+                }
+            } catch (Exception e) {
+                log.warn("Inquiry failed for externalRef={}: {}",
+                        req.getExternalRef(), e.getMessage());
+            }
+        }
+    }
+}
+```
+
+> **Note**: Trong lab hardcode `localhost:9090`. Production nên inject `coreInquiryClient` từ `@Bean` configuration.
+
+### 12.17 Utility — CoreBankingServiceImpl helper
+
+```java
+// Trong CoreBankingServiceImpl, method generateCoreRef():
+private String generateCoreRef() {
+    return "CORE" + LocalDate.now().format(DateTimeFormatter.BASIC_ISO_DATE)
+            + String.format("%04d", new Random().nextInt(10000));
+}
+
+// Trong CoreBankingServiceImpl, method sleep():
+private void sleep(long millis) {
+    if (millis > 0) {
+        try {
+            Thread.sleep(millis);
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+        }
+    }
+}
+```
+
+### 12.18 Package Structure
+
+```
+transfer-service/
+├── src/main/java/com/smartosc/transfer/
+│   ├── TransferServiceApplication.java
+│   ├── controller/
+│   │   ├── TransferController.java
+│   │   └── TransferInquiryController.java
+│   ├── service/
+│   │   ├── TransferService.java              (interface)
+│   │   ├── TransferServiceImpl.java          (buggy orchestrator)
+│   │   └── IdempotencyService.java           (REQUIRES_NEW — after fix)
+│   ├── client/
+│   │   └── CoreBankingClient.java
+│   ├── domain/
+│   │   ├── AppTransferRequest.java           (entity)
+│   │   └── ExternalReference.java            (value object — after fix)
+│   ├── repository/
+│   │   └── AppTransferRequestRepository.java
+│   ├── scheduler/
+│   │   └── InquiryScheduler.java             (after fix)
+│   └── dto/
+│       ├── TransferRequest.java
+│       └── CoreInquiryResponse.java          (shared DTO)
+└── src/main/resources/
+    └── application.yml
+
+mock-core-banking/
+├── src/main/java/com/smartosc/corebank/
+│   ├── MockCoreBankingApplication.java
+│   ├── controller/
+│   │   ├── CoreDebitController.java
+│   │   └── CoreInquiryController.java
+│   ├── service/
+│   │   ├── CoreBankingService.java           (interface)
+│   │   └── CoreBankingServiceImpl.java
+│   ├── domain/
+│   │   ├── CoreAccount.java                  (entity)
+│   │   └── CoreTransaction.java              (entity)
+│   ├── repository/
+│   │   ├── CoreAccountRepository.java
+│   │   └── CoreTransactionRepository.java
+│   └── dto/
+│       ├── CoreDebitRequest.java
+│       └── CoreInquiryResponse.java
+└── src/main/resources/
+    └── application.yml
+```
+
+---
 *Tài liệu này thuộc series Java Core Training - SmartOSC.*
